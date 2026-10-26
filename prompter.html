@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompter</title>
+<style>
+@font-face { font-family: "ParibuSans"; font-weight: 400; src: url("fonts/ParibuSans-Regular.woff2") format("woff2"); }
+@font-face { font-family: "ParibuSans"; font-weight: 500; src: url("fonts/ParibuSans-Medium.woff2") format("woff2"); }
+@font-face { font-family: "ParibuSans"; font-weight: 600 700; src: url("fonts/ParibuSans-SemiBold.woff2") format("woff2"); }
+
+/* Paribu P26 tokens */
+:root {
+  --fg-1: #1A1A1A; --fg-2: #555555; --fg-3: #757575;
+  --bg-page: #F5F5F5; --bg-card: #FFFFFF; --bg-strong: #E5E5E5;
+  --stroke: #D9D9D9;
+  --brand: #9BBA3C; --brand-strong: #5C6F24; --brand-press: #7B9530; --brand-tint: #EEF1EE;
+  --neg: #C4342B;
+  --tv-bg: #121212; --tv-chip: #2C2C2C; --tv-bar: #1A1A1A; --tv-dim: #8A8A8A;
+  --font: "ParibuSans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg-page); color: var(--fg-1); font-family: var(--font); }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(155,186,60,.6); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- operator ---------- */
+.op { min-height: 100vh; padding: 32px 40px; display: flex; flex-direction: column; gap: 24px; max-width: 1600px; margin: 0 auto; }
+.op header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.op h1 { margin: 0; font-size: 28px; line-height: 32px; font-weight: 600; }
+.op h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.badge { font-size: 13px; line-height: 18px; font-weight: 500; padding: 4px 12px; border-radius: 999px; color: var(--fg-2); background: var(--bg-strong); }
+.badge.on { color: var(--brand-strong); background: var(--brand-tint); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 24px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.card { background: var(--bg-card); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.hint { margin: 0; font-size: 13px; line-height: 18px; color: var(--fg-2); }
+.btn { height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--stroke); background: var(--bg-card); font-size: 15px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; transition: background .15s ease; }
+.btn:hover { background: #F5F5F5; }
+.btn.sm { height: 36px; padding: 0 14px; font-size: 13px; }
+.btn.dark { border: 0; background: var(--fg-1); color: #FFFFFF; }
+.btn.dark:hover { background: #333333; }
+.btn.primary { border: 0; background: var(--brand); color: var(--fg-1); font-weight: 600; }
+.btn.primary:hover { background: #8BA836; }
+.btn.lg { height: 52px; padding: 0 24px; font-size: 16px; }
+.grow { flex-grow: 1; justify-content: center; }
+textarea#script { min-height: 520px; width: 100%; resize: vertical; border: 1px solid var(--stroke); border-radius: 16px; padding: 16px 18px; font-size: 16px; line-height: 26px; background: var(--bg-card); }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field .between { font-size: 15px; line-height: 20px; }
+.field label { font-weight: 500; }
+.val { color: var(--fg-2); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--brand-press); }
+input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--brand-press); }
+.check { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.seg { display: flex; padding: 4px; gap: 4px; background: var(--bg-strong); border-radius: 999px; }
+.seg button { height: 36px; padding: 0 16px; border-radius: 999px; border: 0; background: transparent; color: var(--fg-2); font-size: 14px; font-weight: 500; }
+.seg button[aria-pressed="true"] { background: var(--bg-card); color: var(--fg-1); }
+.num { width: 72px; height: 40px; padding: 0 10px; border: 1px solid var(--stroke); border-radius: 12px; font-size: 15px; }
+.timer-big { font-size: 32px; line-height: 40px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.timer-big.over { color: var(--neg); }
+kbd { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--bg-strong); color: var(--fg-1); }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; font-size: 13px; line-height: 20px; color: var(--fg-2); align-items: center; }
+
+/* ---------- TV stage (shared by preview and TV view) ---------- */
+.wrap { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: var(--tv-bg); touch-action: none; overscroll-behavior: contain; cursor: grab; }
+.wrap.dragging { cursor: grabbing; }
+.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: var(--tv-bg); color: #FFFFFF; }
+.flip { position: absolute; inset: 0; }
+.text { position: relative; margin: 0 auto; padding-bottom: 1080px; line-height: 1.38; font-weight: 600; display: flex; flex-direction: column; gap: .7em; will-change: transform; }
+.text p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.text .cue { align-self: flex-start; font-size: .5em; font-weight: 500; color: var(--tv-bg); background: var(--brand); padding: .2em .9em; border-radius: 999px; }
+.text .end { color: var(--tv-dim); }
+.dim { position: absolute; left: 0; right: 0; top: 0; background: rgba(18,18,18,.6); pointer-events: none; }
+.band { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; pointer-events: none; }
+.band i { width: 64px; height: 10px; border-radius: 999px; background: var(--brand); }
+.strip { position: absolute; left: 0; right: 0; top: 0; height: 80px; padding: 0 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; font-size: 24px; line-height: 32px; font-weight: 500; color: var(--tv-dim); }
+.strip .state { padding: 4px 16px; border-radius: 999px; background: var(--tv-chip); color: #FFFFFF; }
+.strip .state.live { background: var(--brand); color: var(--tv-bg); }
+.tv-timer { display: flex; align-items: baseline; gap: 12px; color: #FFFFFF; }
+.tv-timer b { font-size: 44px; line-height: 52px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tv-timer.near { color: #F5C451; } .tv-timer.over { color: #FF7A70; }
+.tv-only { display: none; }
+.tvbtn { height: 48px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--tv-chip); color: #FFFFFF; font-size: 20px; }
+.bar { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); display: none; align-items: center; gap: 12px; padding: 12px; background: var(--tv-bar); border: 1px solid var(--tv-chip); border-radius: 999px; transition: opacity .24s ease; }
+.bar button { width: 64px; height: 64px; border-radius: 999px; border: 0; background: var(--tv-chip); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
+.bar .play { width: auto; height: 72px; padding: 0 36px; background: var(--brand); color: var(--tv-bg); font-size: 26px; }
+.bar .on { background: var(--brand); color: var(--tv-bg); }
+.bar .sep { width: 1px; height: 40px; background: #3A3A3A; }
+.overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(18,18,18,.85); color: #FFFFFF; font-size: 40px; font-weight: 600; text-align: center; padding: 80px; cursor: pointer; }
+
+/* TV view: the stage fills the whole window */
+body.tv { background: var(--tv-bg); overflow: hidden; }
+body.tv .op > *:not(.grid) { display: none; }
+body.tv .wrap { position: fixed; inset: 0; z-index: 10; aspect-ratio: auto; border-radius: 0; cursor: default; }
+body.tv .tv-only { display: inline-flex; }
+body.tv .bar { display: flex; }
+body.tv.idle .bar { opacity: 0; pointer-events: none; }
+body.tv.idle .wrap { cursor: none; }
+body.tv.ask-fs .overlay { display: flex; }
+
+@media (max-width: 640px) { .op { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="op">
+  <header>
+    <div class="row" style="gap: 12px;">
+      <h1>Prompter</h1>
+      <span id="link" class="badge">TV penceresi açık değil</span>
+    </div>
+    <div class="row">
+      <label class="btn" style="position: relative;">Metni içe aktar
+        <input id="file" type="file" accept=".txt,text/plain" class="sr">
+      </label>
+      <button id="save" type="button" class="btn">Metni kaydet</button>
+      <button id="here" type="button" class="btn">Bu pencerede TV</button>
+      <button id="open" type="button" class="btn dark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+        TV penceresini aç
+      </button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="between">
+        <label for="script" style="font-size: 18px; line-height: 24px; font-weight: 600;">Metin</label>
+        <div class="row">
+          <button type="button" class="btn sm" data-cue="Duraklat">Duraklama ekle</button>
+          <button type="button" class="btn sm" data-cue="Kameraya bak">Kameraya bak ekle</button>
+        </div>
+      </div>
+      <textarea id="script" spellcheck="false"></textarea>
+      <div class="between hint">
+        <span>Paragrafları boş satırla ayırın. [ ] içindeki satırlar TV'de işaret olur. .txt dosyasını buraya sürükleyebilirsiniz.</span>
+        <span id="words" class="val"></span>
+      </div>
+    </section>
+
+    <div class="col">
+      <div class="row" style="gap: 12px;">
+        <button id="restart" type="button" class="btn lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+          Başa dön
+        </button>
+        <button id="play" type="button" class="btn lg primary grow">Başlat</button>
+      </div>
+
+      <div id="wrap" class="wrap" aria-label="TV önizlemesi">
+        <div id="stage" class="stage">
+          <div id="flip" class="flip"><div id="text" class="text"></div></div>
+          <div id="dim" class="dim"></div>
+          <div id="band" class="band" aria-hidden="true"><i></i><i></i></div>
+          <div class="strip">
+            <div class="row" style="gap: 12px;">
+              <span id="tvState" class="state">Beklemede</span>
+              <span id="tvPct">%0</span>
+            </div>
+            <div id="tvTimer" class="tv-timer"><span id="tvTimerLabel">Geçen</span><b id="tvTimerText">00:00</b></div>
+            <div class="row" style="gap: 16px;">
+              <span id="tvInfo" style="font-variant-numeric: tabular-nums;"></span>
+              <button id="tvFs" type="button" class="tvbtn tv-only">Tam ekran</button>
+              <button id="tvBack" type="button" class="tvbtn tv-only">Panele dön</button>
+            </div>
+          </div>
+          <div class="bar">
+            <button type="button" data-act="restart" aria-label="Başa dön"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+            <button type="button" data-act="lineBack" aria-label="Bir satır geri"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+            <button type="button" data-act="lineFwd" aria-label="Bir satır ileri"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" data-act="slower" aria-label="Yavaşlat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+            <button type="button" data-act="toggle" class="play" id="tvPlay">Başlat</button>
+            <button type="button" data-act="faster" aria-label="Hızlandır"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" data-act="smaller" aria-label="Yazıyı küçült">A−</button>
+            <button type="button" data-act="bigger" aria-label="Yazıyı büyüt" style="font-size: 28px;">A+</button>
+            <button type="button" data-act="mirror" id="tvMirror" aria-pressed="false" style="width: auto; padding: 0 24px;">Ayna</button>
+          </div>
+          <div id="overlay" class="overlay">Tam ekran için tıklayın</div>
+        </div>
+      </div>
+
+      <section class="card" style="gap: 20px;">
+        <div class="field">
+          <div class="between"><label for="speed">Kaydırma hızı</label><span id="speedVal" class="val"></span></div>
+          <input id="speed" type="range" min="1" max="10" step="1">
+        </div>
+        <div class="field">
+          <div class="between"><label for="size">Yazı boyutu</label><span id="sizeVal" class="val"></span></div>
+          <input id="size" type="range" min="16" max="160" step="2">
+        </div>
+        <div class="field">
+          <div class="between"><label for="line">Okuma çizgisi</label><span id="lineVal" class="val"></span></div>
+          <input id="line" type="range" min="15" max="65" step="1">
+        </div>
+        <div class="field">
+          <div class="between"><label for="width">Metin genişliği</label><span id="widthVal" class="val"></span></div>
+          <input id="width" type="range" min="900" max="1800" step="20">
+        </div>
+        <label class="check">
+          <span style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-weight: 500;">Ayna görüntü</span>
+            <span class="hint">Cam yansıtmalı prompter düzeneği için</span>
+          </span>
+          <input id="mirror" type="checkbox">
+        </label>
+      </section>
+
+      <section class="card" style="gap: 12px;">
+        <h2>Elle kaydırma</h2>
+        <div class="row">
+          <button type="button" class="btn" data-act="paraBack">Paragraf geri</button>
+          <button type="button" class="btn" data-act="lineBack">Satır geri</button>
+          <button type="button" class="btn" data-act="lineFwd">Satır ileri</button>
+          <button type="button" class="btn" data-act="paraFwd">Paragraf ileri</button>
+        </div>
+        <p class="hint">Önizlemeyi sürükleyerek ya da fare tekerleğiyle de kaydırabilirsiniz. Akış açıksa metin yeni konumdan devam eder.</p>
+      </section>
+
+      <section class="card">
+        <label class="check">
+          <h2>Zamanlayıcı</h2>
+          <input id="timerOn" type="checkbox" aria-label="Zamanlayıcıyı TV'de göster">
+        </label>
+        <div class="between">
+          <div class="seg" role="group" aria-label="Zamanlayıcı türü">
+            <button id="modeUp" type="button">Geçen süre</button>
+            <button id="modeDown" type="button">Geri sayım</button>
+          </div>
+          <label id="targetWrap" class="row hint" style="font-size: 14px;">Hedef süre (dk)
+            <input id="target" class="num" type="number" min="1" max="180" step="1">
+          </label>
+        </div>
+        <div class="between">
+          <div class="row" style="align-items: baseline; gap: 10px;">
+            <span id="timerLabel" class="hint" style="font-size: 14px;">Geçen</span>
+            <span id="timerText" class="timer-big">00:00</span>
+          </div>
+          <button id="resetTimer" type="button" class="btn">Süreyi sıfırla</button>
+        </div>
+        <p class="hint">Süre yalnızca metin akarken ilerler. Kapalıyken TV'de görünmez.</p>
+      </section>
+
+      <section class="card" style="gap: 12px;">
+        <h2>Kısayollar</h2>
+        <div class="keys">
+          <kbd>Boşluk</kbd><span>Başlat / duraklat</span>
+          <kbd>↑ ↓</kbd><span>Bir satır geri / ileri</span>
+          <kbd>Page Up / Down</kbd><span>Paragraf geri / ileri (sunum kumandaları da çalışır)</span>
+          <kbd>+ −</kbd><span>Hızlandır / yavaşlat</span>
+          <kbd>R</kbd><span>Başa dön</span>
+          <kbd>M</kbd><span>Ayna</span>
+          <kbd>F</kbd><span>Tam ekran (TV görünümü)</span>
+          <kbd>Esc</kbd><span>Bu penceredeki TV görünümünden çık</span>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const DEFAULT_SCRIPT = "İyi akşamlar, Paribu Art'a hoş geldiniz.\n\nBu ekran, sahnedeki konuşmacının metnini kameraya bakarken okuyabilmesi için hazırlandı.\n\n[Duraklat · nefes al]\n\nOkuduğunuz satır her zaman yeşil işaretlerin arasında kalır. Gözünüzü o çizgide tutun, metin size doğru gelir.\n\nOperatör hızı konuşmanıza göre ayarlar. Yavaşlarsanız metin de yavaşlar, hızlanırsanız metin de hızlanır.\n\n[Kameraya bak]\n\nKendi konuşma metninizi Metin alanına yapıştırın.";
+  const STORE = 'paribu-prompter';
+  const PX_PER_SPEED = 11.25;          // px/s per speed step on the 1920x1080 stage
+  // shared keys and their types: anything else in a message is ignored
+  const SHARED = { script: 'string', speed: 'number', fontSize: 'number', linePct: 'number', width: 'number', mirror: 'boolean',
+    playing: 'boolean', offset: 'number', timerOn: 'boolean', timerMode: 'string', timerTarget: 'number', elapsed: 'number' };
+  const SAVED_KEYS = ['script', 'speed', 'fontSize', 'linePct', 'width', 'mirror', 'timerOn', 'timerMode', 'timerTarget'];
+
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const role = location.hash === '#tv' ? 'tv' : 'operator';
+
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { saved = {}; }
+  const S = {
+    script: DEFAULT_SCRIPT, speed: 3, fontSize: 72, linePct: 35, width: 1500, mirror: false,
+    playing: false, offset: 0, timerOn: true, timerMode: 'up', timerTarget: 5, elapsed: 0
+  };
+  SAVED_KEYS.forEach((k) => { if (typeof saved[k] === SHARED[k]) S[k] = saved[k]; });
+
+  let localTv = role === 'tv';
+  let tvWin = null;
+  let lastDriver = 0;      // last time an operator window sent the scroll position
+  let lastPeer = 0;
+  let dragging = null;
+  let scale = 0.3;
+  let renderedScript = null;
+
+  // ---------- transport: direct window link + BroadcastChannel ----------
+  let bc = null;
+  try { bc = new BroadcastChannel(STORE); bc.onmessage = (e) => receive(e.data); } catch (e) { bc = null; }
+  window.addEventListener('message', (e) => { if (e.source && (e.source === tvWin || e.source === window.opener)) receive(e.data); });
+
+  function send(msg) {
+    msg.from = role;
+    try { if (tvWin && !tvWin.closed) tvWin.postMessage(msg, '*'); } catch (e) {}
+    try { if (window.opener && !window.opener.closed) window.opener.postMessage(msg, '*'); } catch (e) {}
+    try { if (bc) bc.postMessage(msg); } catch (e) {}
+  }
+  function shared(keys) {
+    const out = {};
+    (keys || Object.keys(SHARED)).forEach((k) => { out[k] = S[k]; });
+    return out;
+  }
+  function receive(msg) {
+    if (!msg || typeof msg !== 'object' || (msg.from !== 'operator' && msg.from !== 'tv')) return;
+    lastPeer = Date.now();
+    if (msg.type === 'hello') { send({ type: 'state', data: shared() }); return; }
+    if (msg.type !== 'state' || !msg.data || typeof msg.data !== 'object') return;
+    if (msg.from === 'operator') lastDriver = Date.now();
+    Object.keys(SHARED).forEach((k) => {
+      if (k in msg.data && typeof msg.data[k] === SHARED[k]) S[k] = msg.data[k];
+    });
+    if (S.timerMode !== 'down') S.timerMode = 'up';
+    render();
+  }
+
+  // local change: apply, broadcast, remember
+  function update(patch) {
+    Object.assign(S, patch);
+    send({ type: 'state', data: shared() });
+    try { const keep = {}; SAVED_KEYS.forEach((k) => { keep[k] = S[k]; }); localStorage.setItem(STORE, JSON.stringify(keep)); } catch (e) {}
+    render();
+  }
+
+  // ---------- geometry ----------
+  const textEl = $('text');
+  const lineY = () => Math.round(1080 * S.linePct / 100);
+  const lineH = () => Math.round(S.fontSize * 1.38);
+  const maxOffset = () => Math.max(0, textEl.offsetHeight - lineY() - 1080);
+  const scrollTo = (v) => update({ offset: clamp(v, 0, maxOffset()) });
+  const paraStarts = () => Array.from(textEl.children).map((el) => el.offsetTop - lineY()).filter((v) => v >= 0);
+
+  const ACTIONS = {
+    toggle: () => update({ playing: !S.playing }),
+    restart: () => update({ offset: 0, playing: false }),
+    slower: () => update({ speed: clamp(S.speed - 1, 1, 10) }),
+    faster: () => update({ speed: clamp(S.speed + 1, 1, 10) }),
+    smaller: () => update({ fontSize: clamp(S.fontSize - 8, 16, 160) }),
+    bigger: () => update({ fontSize: clamp(S.fontSize + 8, 16, 160) }),
+    mirror: () => update({ mirror: !S.mirror }),
+    lineBack: () => scrollTo(S.offset - lineH()),
+    lineFwd: () => scrollTo(S.offset + lineH()),
+    paraBack: () => { const p = paraStarts().filter((v) => v < S.offset - 4); scrollTo(p.length ? p[p.length - 1] : 0); },
+    paraFwd: () => { const n = paraStarts().find((v) => v > S.offset + 4); scrollTo(n == null ? maxOffset() : n); }
+  };
+  document.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => ACTIONS[b.dataset.act]()));
+
+  // ---------- rendering ----------
+  function mmss(ms) {
+    const t = Math.floor(Math.abs(ms) / 1000);
+    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+  }
+  function renderScript() {
+    textEl.textContent = '';
+    S.script.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean).forEach((t) => {
+      const p = document.createElement('p');
+      const cue = /^\[(.*)\]$/s.exec(t);
+      if (cue) { p.className = 'cue'; p.textContent = cue[1].trim(); } else { p.textContent = t; }
+      textEl.appendChild(p);
+    });
+    const end = document.createElement('p');
+    end.className = 'end';
+    end.textContent = 'Metin sonu';
+    textEl.appendChild(end);
+    renderedScript = S.script;
+    const words = S.script.replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(Boolean).length;
+    const min = Math.max(0.5, Math.round(words / 130 * 2) / 2);
+    $('words').textContent = words + ' kelime · yaklaşık ' + String(min).replace('.', ',') + ' dk';
+  }
+  function setIfIdle(el, value, prop) {
+    if (document.activeElement !== el && el[prop || 'value'] !== value) el[prop || 'value'] = value;
+  }
+
+  function render() {
+    if (renderedScript !== S.script) renderScript();
+    const lh = lineH(), ly = lineY();
+    textEl.style.width = S.width + 'px';
+    textEl.style.fontSize = S.fontSize + 'px';
+    textEl.style.paddingTop = ly + 'px';
+    textEl.style.transform = 'translateY(' + (-Math.round(S.offset)) + 'px)';
+    $('flip').style.transform = S.mirror ? 'scaleX(-1)' : '';
+    $('dim').style.height = Math.max(0, ly - Math.round(lh * 0.15)) + 'px';
+    $('band').style.top = (ly - Math.round(lh * 0.15)) + 'px';
+    $('band').style.height = lh + 'px';
+
+    const pct = Math.min(100, Math.round(S.offset / (maxOffset() || 1) * 100));
+    $('tvState').textContent = S.playing ? 'Akıyor' : 'Beklemede';
+    $('tvState').classList.toggle('live', S.playing);
+    $('tvPct').textContent = '%' + pct;
+    $('tvInfo').textContent = 'Hız ' + S.speed + ' · Yazı ' + S.fontSize + ' px' + (S.mirror ? ' · Aynalı' : '');
+    $('play').textContent = $('tvPlay').textContent = S.playing ? 'Duraklat' : 'Başlat';
+    $('tvMirror').classList.toggle('on', S.mirror);
+    $('tvMirror').setAttribute('aria-pressed', String(S.mirror));
+
+    const down = S.timerMode === 'down';
+    const rem = S.timerTarget * 60000 - S.elapsed;
+    const over = down && rem < 0, near = down && !over && rem <= 30000;
+    const ttext = down ? (over ? '+' : '') + mmss(rem) : mmss(S.elapsed);
+    const tlabel = down ? (over ? 'Süre aşıldı' : 'Kalan') : 'Geçen';
+    $('tvTimer').style.visibility = S.timerOn ? 'visible' : 'hidden';
+    $('tvTimer').className = 'tv-timer' + (over ? ' over' : near ? ' near' : '');
+    $('tvTimerText').textContent = $('timerText').textContent = ttext;
+    $('tvTimerLabel').textContent = $('timerLabel').textContent = tlabel;
+    $('timerText').classList.toggle('over', over);
+    $('modeUp').setAttribute('aria-pressed', String(!down));
+    $('modeDown').setAttribute('aria-pressed', String(down));
+    $('targetWrap').style.visibility = down ? 'visible' : 'hidden';
+
+    setIfIdle($('script'), S.script);
+    setIfIdle($('speed'), String(S.speed));
+    setIfIdle($('size'), String(S.fontSize));
+    setIfIdle($('line'), String(S.linePct));
+    setIfIdle($('width'), String(S.width));
+    setIfIdle($('target'), String(S.timerTarget));
+    $('mirror').checked = S.mirror;
+    $('timerOn').checked = S.timerOn;
+    $('speedVal').textContent = S.speed + ' / 10';
+    $('sizeVal').textContent = S.fontSize + ' px';
+    $('lineVal').textContent = 'üstten %' + S.linePct;
+    $('widthVal').textContent = S.width + ' px';
+
+    const linked = Date.now() - lastPeer < 3000 || (tvWin && !tvWin.closed);
+    $('link').textContent = linked ? 'TV penceresi bağlı' : 'TV penceresi açık değil';
+    $('link').classList.toggle('on', !!linked);
+  }
+
+  // ---------- stage scaling ----------
+  const wrap = $('wrap'), stage = $('stage');
+  function fit() {
+    const r = wrap.getBoundingClientRect();
+    scale = Math.min(r.width / 1920, r.height / 1080) || 0.3;
+    stage.style.transform = 'translate(' + Math.round((r.width - 1920 * scale) / 2) + 'px,' + Math.round((r.height - 1080 * scale) / 2) + 'px) scale(' + scale + ')';
+  }
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fit).observe(wrap);
+  window.addEventListener('resize', fit);
+
+  // ---------- manual scroll: wheel + drag ----------
+  wrap.addEventListener('wheel', (e) => { e.preventDefault(); scrollTo(S.offset + e.deltaY / scale); }, { passive: false });
+  wrap.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button') || e.target.closest('.overlay')) return;
+    dragging = { y: e.clientY, offset: S.offset };
+    wrap.setPointerCapture(e.pointerId);
+    wrap.classList.add('dragging');
+  });
+  wrap.addEventListener('pointermove', (e) => { if (dragging) scrollTo(dragging.offset - (e.clientY - dragging.y) / scale); });
+  const endDrag = () => { dragging = null; wrap.classList.remove('dragging'); };
+  wrap.addEventListener('pointerup', endDrag);
+  wrap.addEventListener('pointercancel', endDrag);
+
+  // ---------- operator controls ----------
+  $('script').addEventListener('input', (e) => update({ script: e.target.value }));
+  $('speed').addEventListener('input', (e) => update({ speed: Number(e.target.value) }));
+  $('size').addEventListener('input', (e) => update({ fontSize: Number(e.target.value) }));
+  $('line').addEventListener('input', (e) => update({ linePct: Number(e.target.value) }));
+  $('width').addEventListener('input', (e) => update({ width: Number(e.target.value) }));
+  $('mirror').addEventListener('change', ACTIONS.mirror);
+  $('play').addEventListener('click', ACTIONS.toggle);
+  $('restart').addEventListener('click', ACTIONS.restart);
+  $('timerOn').addEventListener('change', () => update({ timerOn: !S.timerOn }));
+  $('modeUp').addEventListener('click', () => update({ timerMode: 'up' }));
+  $('modeDown').addEventListener('click', () => update({ timerMode: 'down' }));
+  $('target').addEventListener('change', (e) => update({ timerTarget: clamp(Math.round(Number(e.target.value)) || 1, 1, 180) }));
+  $('resetTimer').addEventListener('click', () => update({ elapsed: 0 }));
+  document.querySelectorAll('[data-cue]').forEach((b) => b.addEventListener('click', () => {
+    update({ script: S.script.replace(/\s*$/, '') + '\n\n[' + b.dataset.cue + ']\n\n' });
+  }));
+
+  function loadText(file) {
+    if (!file) return;
+    file.text().then((t) => update({ script: t.replace(/\r\n?/g, '\n'), offset: 0, playing: false }));
+  }
+  $('file').addEventListener('change', (e) => { loadText(e.target.files[0]); e.target.value = ''; });
+  document.addEventListener('dragover', (e) => e.preventDefault());
+  document.addEventListener('drop', (e) => { e.preventDefault(); loadText(e.dataTransfer.files && e.dataTransfer.files[0]); });
+  $('save').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([S.script], { type: 'text/plain;charset=utf-8' }));
+    a.download = 'prompter-metni.txt';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // open the TV window, on the second screen when the browser can tell us where it is
+  $('open').addEventListener('click', async () => {
+    const url = location.href.split('#')[0] + '#tv';
+    let feat = 'popup,width=1280,height=720';
+    try {
+      if ('getScreenDetails' in window) {
+        const d = await window.getScreenDetails();
+        const other = d.screens.find((s) => s !== d.currentScreen);
+        if (other) feat = 'popup,left=' + other.availLeft + ',top=' + other.availTop + ',width=' + other.availWidth + ',height=' + other.availHeight;
+      }
+    } catch (e) {}
+    tvWin = window.open(url, 'paribu-prompter-tv', feat);
+    if (tvWin) setTimeout(() => send({ type: 'state', data: shared() }), 600);
+    render();
+  });
+
+  // ---------- TV view ----------
+  function setTv(on) {
+    localTv = on;
+    document.body.classList.toggle('tv', on);
+    $('tvBack').style.display = on && role === 'operator' ? '' : 'none';
+    requestAnimationFrame(fit);
+    poke();
+  }
+  function fullscreen() {
+    document.body.classList.remove('ask-fs');
+    try { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); } catch (e) {}
+  }
+  $('here').addEventListener('click', () => setTv(true));
+  $('tvBack').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); setTv(false); });
+  $('tvFs').addEventListener('click', fullscreen);
+  $('overlay').addEventListener('click', fullscreen);
+
+  // hide the TV control bar and cursor after a few idle seconds
+  let idleTimer = 0;
+  function poke() {
+    document.body.classList.remove('idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { if (localTv) document.body.classList.add('idle'); }, 2500);
+  }
+  window.addEventListener('pointermove', poke);
+  window.addEventListener('pointerdown', poke);
+
+  // ---------- keyboard ----------
+  window.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type !== 'checkbox' && t.type !== 'range'))) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const map = {
+      ' ': 'toggle', ArrowUp: 'lineBack', ArrowDown: 'lineFwd', PageUp: 'paraBack', PageDown: 'paraFwd',
+      '+': 'faster', '=': 'faster', '-': 'slower', r: 'restart', R: 'restart', Home: 'restart', m: 'mirror', M: 'mirror'
+    };
+    if (map[e.key]) { e.preventDefault(); ACTIONS[map[e.key]](); poke(); return; }
+    if ((e.key === 'f' || e.key === 'F') && localTv) { e.preventDefault(); fullscreen(); return; }
+    if (e.key === 'Escape' && localTv && role === 'operator' && !document.fullscreenElement) setTv(false);
+  });
+
+  // ---------- scroll loop ----------
+  let last = performance.now(), lastSend = 0;
+  function frame(now) {
+    const dt = Math.min(250, now - last);
+    last = now;
+    // an operator window drives the scroll; a TV window follows it while it is present
+    const follower = role === 'tv' && Date.now() - lastDriver < 700;
+    if (S.playing && !follower) {
+      S.elapsed += dt;
+      if (!dragging) S.offset += S.speed * PX_PER_SPEED * dt / 1000;
+      const max = maxOffset();
+      if (S.offset >= max) { S.offset = max; update({ playing: false }); }
+      else {
+        render();
+        if (role === 'operator' && now - lastSend > 30) { lastSend = now; send({ type: 'state', data: shared(['offset', 'elapsed', 'playing']) }); }
+      }
+    } else if (now - lastSend > 1000) {
+      lastSend = now;
+      render();   // keeps the link badge current
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- start ----------
+  if (role === 'tv') {
+    document.title = 'Prompter · TV';
+    document.body.classList.add('ask-fs');
+  }
+  setTv(localTv);
+  render();
+  fit();
+  send({ type: 'hello' });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
